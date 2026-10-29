@@ -1,0 +1,28 @@
+name: build-windows
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Build (Tauri, no bundle)
+        run: pnpm tauri build --no-bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fr-launcher-rust-windows
+          path: src-tauri/target/release/*.exe
+          if-no-files-found: error
