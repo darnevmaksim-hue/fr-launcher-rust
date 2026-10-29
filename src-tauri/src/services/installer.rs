@@ -50,7 +50,12 @@ pub async fn install_profile(profile: &Profile, app: AppHandle) -> Result<()> {
         None,
         None,
     );
-    install_horizonui_mod(profile, &progress).await?;
+    // Мод HorizonUI не обязателен для запуска: если для выбранной версии/лоадера
+    // его нет в Modrinth, установка инстанса всё равно должна завершиться.
+    if let Err(e) = install_horizonui_mod(profile, &progress).await {
+        log::warn!("HorizonUI mod was not installed: {e}");
+        progress.log(format!("HorizonUI mod skipped: {e}"));
+    }
 
     progress.emit(
         "natives",
