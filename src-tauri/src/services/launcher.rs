@@ -97,9 +97,29 @@ pub async fn launch(profile: &Profile, app: AppHandle) -> Result<u32> {
         }
     }
 
-    for arg in &resolved.jvm_args {
+    // Forge/NeoForge подставляют в JVM-аргументы плейсхолдеры — их нужно раскрыть,
+    // иначе modlauncher не найдёт модули (${library_directory}, ${classpath_separator} и т.д.).
+    let separator = if cfg!(windows) { ";" } else { ":" };
+    let library_dir = paths::libraries_dir().to_string_lossy().to_string();
+    let natives_path = natives.to_string_lossy().to_string();
+    for raw in &resolved.jvm_args {
+        let arg = raw
+            .replace("${library_directory}", &library_dir)
+            .replace("${classpath_separator}", separator)
+            .replace("${natives_directory}", &natives_path)
+            .replace("${version_name}", &version_id)
+            .replace("${classpath}", &cp)
+            .replace("${launcher_name}", "FR-Launcher")
+            .replace("${launcher_version}", env!("CARGO_PKG_VERSION"));
         cmd.arg(arg);
     }
+    log::info!(
+        "fr-launch: java={} version={} classpath_entries={} jvm_args={}",
+        java_path,
+        version_id,
+        resolved.classpath.len(),
+        resolved.jvm_args.len()
+    );
 
     if !resolved
         .jvm_args
