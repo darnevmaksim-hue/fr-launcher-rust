@@ -79,6 +79,23 @@ pub fn run() {
                 services::paths::log_file().display()
             );
             apply_window_icon(app);
+            // Тестовый режим: FR_TEST_INSTALL=<profile_id> — установить инстанс и запустить игру.
+            if let Ok(profile_id) = std::env::var("FR_TEST_INSTALL") {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    log::info!("fr-test: installing profile {profile_id}");
+                    match crate::commands::install_instance(profile_id.clone(), handle.clone()).await {
+                        Ok(_) => {
+                            log::info!("fr-test: install finished, launching");
+                            match crate::commands::launch_instance(profile_id.clone(), handle.clone()).await {
+                                Ok(pid) => log::info!("fr-test: game started, pid {pid}"),
+                                Err(e) => log::error!("fr-test: launch failed: {e}"),
+                            }
+                        }
+                        Err(e) => log::error!("fr-test: install failed: {e}"),
+                    }
+                });
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
